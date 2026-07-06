@@ -3,11 +3,19 @@
 #ifndef bitboard_H
 #define bitboard_H
 
+#include <string>
+
 #include "defs.h"
+
+// set/get/pop bit macros
+#define set_bit(bitboard, square) ((bitboard) |= (1ULL << (square)))
+#define get_bit(bitboard, square) ((bitboard) & (1ULL << (square)))
+#define pop_bit(bitboard, square) ((bitboard) &= ~(1ULL << (square)))
 
 namespace BitBoards {
     void init();
     void printBoard(bitboard board);  // lowercase bitboard
+    void clearBoard();
 }
 
 

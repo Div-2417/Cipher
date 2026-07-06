@@ -9,11 +9,20 @@
 
 using bitboard = uint64_t;
 
-constexpr int Wp=1, Wn=2,Wb=3,Wr=4,Wq=5,Wk=6;
-constexpr int Bp=7,Bn=8,Bb=9,Br=10,Bq=11,Bk=12;
+extern bitboard bitboards[13]; 
 
-const int Empty = 0;
-constexpr int WHITE = 0;
-constexpr int BLACK = 1;
+enum { Wp=1, Wn=2,Wb=3,Wr=4,Wq=5,Wk=6,
+        Bp=7,Bn=8,Bb=9,Br=10,Bq=11,Bk=12 };
+
+enum { white, black, both };
+
+struct fen{
+        bool whiteToMove = true;
+        bool castleWK = false, castleWQ = false, castleBK = false, castleBQ = false;
+        int enPassantSquare = -1;
+        int halfmoveClock = 0;
+        int fullmoveNumber = 1;
+};
+
 
 #endif
