@@ -15,6 +15,7 @@
 namespace BitBoards {
     void init();
     void printBoard(bitboard board);  // lowercase bitboard
+    void printWholeBoard();  // prints all bitboards
     void clearBoard();
 }
 
