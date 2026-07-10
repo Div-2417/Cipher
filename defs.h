@@ -10,6 +10,7 @@
 using bitboard = uint64_t;
 
 extern bitboard bitboards[13]; 
+extern bitboard occupancies[3];
 
 enum { Wp=1, Wn=2,Wb=3,Wr=4,Wq=5,Wk=6,
         Bp=7,Bn=8,Bb=9,Br=10,Bq=11,Bk=12 };

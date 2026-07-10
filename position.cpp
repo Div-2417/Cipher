@@ -24,7 +24,7 @@ int position::charToPiece(char c) {
         case 'r': return Br;
         case 'q': return Bq;
         case 'k': return Bk;
-        default: return 0ULL;
+        default: return 0;
     }
 }
 
@@ -38,7 +38,9 @@ int position::algebraicToSquare(const std::string& s) {
 }
 
 void position::loadFEN(const std::string& fen){
-    BitBoards::clearBoard();
+
+    FENnotation ={};
+    BitBoard::clearBoard();
 
     std::stringstream ss(fen);
     std::string placement, side, castling, ep;

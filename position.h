@@ -13,6 +13,4 @@ namespace position {
 
 extern fen FENnotation;
 
-extern bitboard bitboards[13];
-
 #endif

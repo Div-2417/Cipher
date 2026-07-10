@@ -12,13 +12,32 @@
 #define get_bit(bitboard, square) ((bitboard) & (1ULL << (square)))
 #define pop_bit(bitboard, square) ((bitboard) &= ~(1ULL << (square)))
 
-namespace BitBoards {
+namespace BitBoard {
     void init();
     void printBoard(bitboard board);  // lowercase bitboard
     void printWholeBoard();  // prints all bitboards
     void clearBoard();
+
 }
 
+namespace Magic{
+    bitboard ComputePawnAttack(int side , int square);
+    bitboard ComputeKnightAttack(int square);
+    bitboard ComputeKingAttack(int square);
+
+    void initLeaperAttacks();
+}
+
+//not affected by blockers
+extern bitboard pawnAttack[2][64];
+extern bitboard knightAttack[64];
+extern bitboard kingAttack[64];
+
+//affected by blockers, masks and attacks
+extern bitboard bishopMask[64];
+extern bitboard rookMask[64];
+extern bitboard bishopAttack[64][512];
+extern bitboard rookAttack[64][4096];
 
 constexpr bitboard FileABB = 0x0101010101010101ULL;
 constexpr bitboard FileBBB = FileABB << 1;
