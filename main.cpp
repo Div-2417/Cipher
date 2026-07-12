@@ -6,7 +6,7 @@
 
 int main(){
 
-    std::cout << "r6r/1b2k1bq/8/8/7B/8/8/R3K2R b KQ - 3 2" << '\n';
+std::cout << "r6r/1b2k1bq/8/8/7B/8/8/R3K2R b KQ - 3 2" << '\n';
 position::loadFEN("r6r/1b2k1bq/8/8/7B/8/8/R3K2R b KQ - 3 2");
 BitBoard::printWholeBoard();
 

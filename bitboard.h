@@ -35,9 +35,10 @@ namespace Magic{
     bitboard computeRookMask(int square);
     bitboard computeBishopAttackOTF(int square, bitboard blockers); //on the fly
     bitboard computeRookAttackOTF(int square, bitboard blockers);
+    bitboard getBishopAttacks(int square, bitboard occupancy);
+    bitboard getRookAttacks(int square, bitboard occupancy);
 
     bitboard ComputeQueenAttack(int square,bitboard blockers);
-
     
     bitboard setOccupancy(int index, int bitsInMask, bitboard mask);
     void UpdateOccupancy();

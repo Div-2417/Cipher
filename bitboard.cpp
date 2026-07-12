@@ -4,7 +4,6 @@
 #include "bitboard.h"
 
 bitboard bitboards[13];
-bitboard occupancies[3];
 
 bitboard pawnAttack[2][64];
 bitboard knightAttack[64];
@@ -277,6 +276,22 @@ bitboard Magic::computeRookAttackOTF(int square, bitboard blockers){
     }
 
     return attacks;
+}
+
+bitboard Magic::getBishopAttacks(int square, bitboard occupancy){
+    occupancy &= bishopMask[square];
+    occupancy *= Magic::bishopMagics[square];
+    occupancy >>= 64 - Magic::bishopBits[square];
+    
+    return bishopAttack[square][occupancy];
+}
+
+bitboard Magic::getRookAttacks(int square, bitboard occupancy){
+    occupancy &= rookMask[square];
+    occupancy *= Magic::rookMagics[square];
+    occupancy >>= 64 - Magic::rookBits[square];
+
+    return rookAttack[square][occupancy];
 }
 
 bitboard Magic::ComputeQueenAttack(int square, bitboard blockers){

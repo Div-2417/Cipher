@@ -6,15 +6,15 @@
 using Move = uint32_t;
 
 //move encoding macro
-#define encode_move(source, target, piece, promoted, capture, double, enpassant, castling) \
-    (source) |          \
-    (target << 6) |     \
-    (piece << 12) |     \
-    (promoted << 16) |  \
-    (capture << 20) |   \
-    (double << 21) |    \
-    (enpassant << 22) | \
-    (castling << 23)    \
+#define encode_move(source, target, piece, promoted, capture, dbl, enpassant, castling) \
+    ((source) |          \
+    ((target) << 6) |     \
+    ((piece) << 12) |     \
+    ((promoted) << 16) |  \
+    ((capture) << 20) |   \
+    ((dbl) << 21) |       \
+    ((enpassant) << 22) | \
+    ((castling) << 23))
 
 //macros for decoding move
 #define get_move_source(move)    ((move) & 0x3f)
@@ -31,7 +31,5 @@ struct MoveList {
     int count = 0;
     void add(Move m) { moves[count++] = m; }
 };
-
-
 
 #endif
