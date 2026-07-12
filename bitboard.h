@@ -21,11 +21,28 @@ namespace BitBoard {
 }
 
 namespace Magic{
+    //magic numbers and attack tables
+    extern bitboard bishopMagics[64];
+    extern bitboard rookMagics[64];
+    extern int bishopBits[64];
+    extern int rookBits[64];
+
     bitboard ComputePawnAttack(int side , int square);
     bitboard ComputeKnightAttack(int square);
     bitboard ComputeKingAttack(int square);
 
+    bitboard computeBishopMask(int square);
+    bitboard computeRookMask(int square);
+    bitboard computeBishopAttackOTF(int square, bitboard blockers); //on the fly
+    bitboard computeRookAttackOTF(int square, bitboard blockers);
+
+    bitboard ComputeQueenAttack(int square,bitboard blockers);
+
+    
+    bitboard setOccupancy(int index, int bitsInMask, bitboard mask);
+    void UpdateOccupancy();
     void initLeaperAttacks();
+    void initSliderAttacks();
 }
 
 //not affected by blockers
