@@ -63,13 +63,23 @@ void position::loadFEN(const std::string& fen){
 
     FENnotation.whiteToMove = (side == "w");
 
-    if (castling.find('K') != std::string::npos) FENnotation.castleWK = true;
-    if (castling.find('Q') != std::string::npos) FENnotation.castleWQ = true;
-    if (castling.find('k') != std::string::npos) FENnotation.castleBK = true;
-    if (castling.find('q') != std::string::npos) FENnotation.castleBQ = true;
+    // Set castling rights in both global variable and FENnotation struct
+    FENnotation.castleWK = (castling.find('K') != std::string::npos);
+    FENnotation.castleWQ = (castling.find('Q') != std::string::npos);
+    FENnotation.castleBK = (castling.find('k') != std::string::npos);
+    FENnotation.castleBQ = (castling.find('q') != std::string::npos);
+
+    enpassant = (ep != "-") ? algebraicToSquare(ep) : no_sq;
+    castle = 0;
+    if (castling.find('K') != std::string::npos) castle |= wk;
+    if (castling.find('Q') != std::string::npos) castle |= wq;
+    if (castling.find('k') != std::string::npos) castle |= bk;
+    if (castling.find('q') != std::string::npos) castle |= bq;
 
     if (ep != "-") {
         FENnotation.enPassantSquare = algebraicToSquare(ep);
+    }else{
+        FENnotation.enPassantSquare = -1;
     }
 
 

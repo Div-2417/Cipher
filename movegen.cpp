@@ -69,7 +69,7 @@ void moveGen::generateAllMoves(int side, MoveList& movelist){
         bitboardPieces = bitboards[piece];
             
         //pawns
-        if(piece == Wp || piece == Bp){
+        if((piece == Wp && side == white) || (piece == Bp && side == black)){
 
             while(bitboardPieces){
 
@@ -129,21 +129,21 @@ void moveGen::generateAllMoves(int side, MoveList& movelist){
         }
         
         //knights
-        else if(piece == Wn || piece == Bn){
+        else if((piece == Wn && side == white) || (piece == Bn && side == black)){
 
             while(bitboardPieces){
 
                 source = __builtin_ctzll(bitboardPieces);
-                attacks = knightAttack[source] & occupancies[opponent];
+                // Compute full attack set, excluding own pieces
+                attacks = knightAttack[source] & ~occupancies[side];
 
                 while(attacks){
                     target = __builtin_ctzll(attacks);
-
-                    if(get_bit(occupancies[opponent], target)){
+                    if(get_bit(occupancies[opponent], target))
                         movelist.add(encode_move(source, target, piece, 0, 1, 0, 0, 0));
-                    }else{
+                    else
                         movelist.add(encode_move(source, target, piece, 0, 0, 0, 0, 0));
-                    }
+
                     pop_bit(attacks, target);
                 }
                 pop_bit(bitboardPieces, source);
@@ -198,26 +198,25 @@ void moveGen::generateAllMoves(int side, MoveList& movelist){
                 pop_bit(bitboardPieces, source);
             }
         }
+    }
 
-        //castling
+    //castling
         if(side == white){
                 if((castle & wk) && !get_bit(occupancies[both], f1) && !get_bit(occupancies[both], g1) &&
                    !helper::isSquareAttacked(e1, black) && !helper::isSquareAttacked(f1, black) && !helper::isSquareAttacked(g1, black)){
-                    movelist.add(encode_move(e1, g1, Wk, 0, 0, 0, 0, 1));
-                }
+                    movelist.add(encode_move(e1, g1, Wk, 0, 0, 0, 0, 1));}
+
                 if((castle & wq) && !get_bit(occupancies[both], d1) && !get_bit(occupancies[both], c1) && !get_bit(occupancies[both], b1) &&
                    !helper::isSquareAttacked(e1, black) && !helper::isSquareAttacked(d1, black) && !helper::isSquareAttacked(c1, black)){
-                    movelist.add(encode_move(e1, c1, Wk, 0, 0, 0, 0, 1));
-                }
+                    movelist.add(encode_move(e1, c1, Wk, 0, 0, 0, 0, 1));}
             } else {
                 if((castle & bk) && !get_bit(occupancies[both], f8) && !get_bit(occupancies[both], g8) &&
                    !helper::isSquareAttacked(e8, white) && !helper::isSquareAttacked(f8, white) && !helper::isSquareAttacked(g8, white)){
-                    movelist.add(encode_move(e8, g8, Bk, 0, 0, 0, 0, 1));
-                }
+                    movelist.add(encode_move(e8, g8, Bk, 0, 0, 0, 0, 1));}
+                    
                 if((castle & bq) && !get_bit(occupancies[both], d8) && !get_bit(occupancies[both], c8) && !get_bit(occupancies[both], b8) &&
                    !helper::isSquareAttacked(e8, white) && !helper::isSquareAttacked(d8, white) && !helper::isSquareAttacked(c8, white)){
-                    movelist.add(encode_move(e8, c8, Bk, 0, 0, 0, 0, 1));
+                    movelist.add(encode_move(e8, c8, Bk, 0, 0, 0, 0, 1));}
                 }
-            }
-    }
+
 }
