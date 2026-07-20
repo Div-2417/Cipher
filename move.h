@@ -34,9 +34,9 @@ struct MoveList {
 };
 
 struct MoveUndo {
-    int captured_piece; // piece type captured, -1 if none (NOT set for enpassant — deterministic)
-    int enpassant;       // enpassant square BEFORE this move
-    int castle;          // castle rights BEFORE this move
+    int captured_piece;
+    int enpassant;
+    int castle;
 };
 
 

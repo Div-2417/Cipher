@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 
 #include "defs.h"
 #include "bitboard.h"
@@ -50,6 +51,41 @@ void helper::AddCastling(int source, int target, int piece, MoveList &moveList){
     Move m = encode_move(source,target,piece,0,0,0,0,1);
     moveList.add(m);
 }
+
+int helper::moveScore(Move mv){
+
+    if (get_move_capture(mv)) { 
+        int attacker = get_move_piece(mv);
+        int target = get_move_target(mv);
+        int victimValue = 0;
+
+        //enpassant capture
+        if (get_move_enpassant(mv)) {
+            victimValue = 100; // Absolute value of a pawn based on pieceValue array
+        } 
+        // Normal capture
+        else {
+            for (int piece = Wp; piece <= Bk; piece++) {
+                if (get_bit(bitboards[piece], target)) {
+                    //black pieces have -ve values in piecevalue
+                    victimValue = std::abs(pieceValue[piece]);
+                    break;
+                }
+            }
+        }
+
+        int attackerValue = std::abs(pieceValue[attacker]);
+
+        //MVV-LVA Score
+        // +10000 ensures captures are scored higher than quiet moves.
+        // + victimValue prioritizes capturing the most valuable piece (MVV).
+        // - (attackerValue / 100) breaks ties by preferring the least valuable attacker (LVA).
+        return 10000 + victimValue - (attackerValue / 100);
+    }
+    
+    // Quiets unscored for now
+    return 0;
+    }
 
 void moveGen::generateAllMoves(int side, MoveList& movelist){
     movelist.count = 0;
@@ -220,3 +256,13 @@ void moveGen::generateAllMoves(int side, MoveList& movelist){
                 }
 
 }
+
+void moveGen::generateAllCaptures(int side, MoveList& movelist){
+    MoveList all;
+    generateAllMoves(side, all);
+    movelist.count = 0;
+    for(int i = 0; i < all.count; i++)
+        if(get_move_capture(all.moves[i]))
+            movelist.add(all.moves[i]);
+}
+

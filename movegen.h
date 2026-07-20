@@ -4,12 +4,16 @@
 #include "defs.h"
 #include "move.h"
 
+static const int MvvLva[13][13] = {};
+
 namespace helper{
     bool isSquareAttacked(int square, int side);
     void AddMove(int source, int target, int piece, MoveList& moveList);
     void AddCapture(int source, int target, int piece, int promoted, MoveList& moveList);
     void AddEnPassant(int source, int target, int piece, MoveList& moveList);
     void AddCastling(int source, int target, int piece, MoveList& moveList);
+    int moveScore(Move move);
+
 }
 
 namespace moveGen{

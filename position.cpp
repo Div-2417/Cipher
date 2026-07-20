@@ -81,6 +81,4 @@ void position::loadFEN(const std::string& fen){
     }else{
         FENnotation.enPassantSquare = -1;
     }
-
-
 }
