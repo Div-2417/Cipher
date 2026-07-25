@@ -81,4 +81,9 @@ void position::loadFEN(const std::string& fen){
     }else{
         FENnotation.enPassantSquare = -1;
     }
+
+    occupancies[white] = occupancies[black] = occupancies[both] = 0ULL;
+    for (int piece = Wp; piece <= Wk; piece++) occupancies[white] |= bitboards[piece];
+    for (int piece = Bp; piece <= Bk; piece++) occupancies[black] |= bitboards[piece];
+    occupancies[both] = occupancies[white] | occupancies[black];
 }

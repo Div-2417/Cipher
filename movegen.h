@@ -4,8 +4,6 @@
 #include "defs.h"
 #include "move.h"
 
-static const int MvvLva[13][13] = {};
-
 namespace helper{
     bool isSquareAttacked(int square, int side);
     void AddMove(int source, int target, int piece, MoveList& moveList);

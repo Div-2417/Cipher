@@ -96,6 +96,7 @@ static inline int mirror(int sq){ return sq ^ 56; }
 // search constants
 static const int INF = 100000;
 static const int MATE_SCORE = 49000;
+static const int MAX_PLY = 64;
 
 enum {
     a1, b1, c1, d1, e1, f1, g1, h1,

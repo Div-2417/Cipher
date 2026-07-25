@@ -20,10 +20,11 @@
     side = side_copy; enpassant = enpassant_copy; castle = castle_copy;
 
 int fifty{0};
-MoveUndo undo_history[256];
+MoveUndo undo_history[MAX_UNDO];
 int undo_index = 0;
 
 int move::makeMove(Move move,int side){
+    if(undo_index >= MAX_UNDO - 1) return 0;
     copy_board();
 
     int source    = get_move_source(move);
@@ -112,7 +113,7 @@ if (capture) {
                 set_bit(bitboards[Br], d8);
                 break;
             default:
-                assert(false && "Invalid castling move");
+                break;
         }
     }
 

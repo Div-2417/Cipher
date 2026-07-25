@@ -27,6 +27,8 @@ using Move = uint32_t;
 #define get_move_enpassant(move) ((move) & 0x400000)
 #define get_move_castling(move)  ((move) & 0x800000)
 
+#define MAX_UNDO 512 
+
 struct MoveList {
     Move moves[256];
     int count = 0;

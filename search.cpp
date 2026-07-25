@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdlib.h>
+#include <chrono>
 
 #include "defs.h"
 #include "search.h"
@@ -7,8 +8,9 @@
 #include "movegen.h"
 #include "move.h"
 #include "perft.h"
+#include "time.h"
 
-
+long long nodeCount = 0;
 int search::evaluate(int side){
 int score = 0;
 
@@ -37,6 +39,9 @@ int score = 0;
 
 
 int search::negamax(int alpha, int beta, int depth, int side, int ply){
+    if(Time::shouldStop()) return 0;
+    nodeCount++;
+
     if(depth == 0) return quiescence(alpha, beta, side, ply);
 
     MoveList moveList;
@@ -85,16 +90,32 @@ int search::negamax(int alpha, int beta, int depth, int side, int ply){
 }
 
 int search::quiescence(int alpha, int beta, int side, int ply){
+    if(Time::shouldStop()) return 0;
+    nodeCount++;
+
+    if(ply >= MAX_PLY) return evaluate(side);   // NEW: hard stop, no exceptions
+
+    int kingSq = __builtin_ctzll(bitboards[(side == white) ? Wk : Bk]);
+    bool inCheck = helper::isSquareAttacked(kingSq, side ^ 1);
+
     int standPat = search::evaluate(side);
-    if(standPat >= beta) return beta;
-    if(standPat > alpha) alpha = standPat;
+    if(!inCheck){
+        if(standPat >= beta) return beta;
+        if(standPat > alpha) alpha = standPat;
+    }
 
-    MoveList captures;
-    moveGen::generateAllCaptures(side, captures);
+    MoveList moveList;
+    if(inCheck){
+        moveGen::generateAllMoves(side, moveList);
+    } else {
+        moveGen::generateAllCaptures(side, moveList);
+    }
 
-    for(int i = 0; i < captures.count; i++){
-        Move mv = captures.moves[i];
+    int legalMoves = 0;
+    for(int i = 0; i < moveList.count; i++){
+        Move mv = moveList.moves[i];
         if(!move::makeMove(mv, side)) continue;
+        legalMoves++;
 
         int score = -quiescence(-beta, -alpha, side ^ 1, ply + 1);
         move::unmakeMove(mv, side);
@@ -103,31 +124,69 @@ int search::quiescence(int alpha, int beta, int side, int ply){
         if(score > alpha) alpha = score;
     }
 
+    if(inCheck && legalMoves == 0)
+        return -MATE_SCORE + ply;
+
     return alpha;
 }
 
 Move search::searchPosition(int maxDepth, int side){
     Move bestMove = 0;
+    int bestScore = -INF;
+    nodeCount = 0;
+    auto searchStart = std::chrono::steady_clock::now();
 
     for(int d = 1; d <= maxDepth; d++){
+        if(Time::shouldStop()) break;
+
         MoveList moveList;
         moveGen::generateAllMoves(side, moveList);
 
-        int bestScore = -INF;
+        int scores[256];
+        for(int i = 0; i < moveList.count; i++)
+            scores[i] = helper::moveScore(moveList.moves[i]);
         for(int i = 0; i < moveList.count; i++){
+            int best = i;
+            for(int j = i + 1; j < moveList.count; j++)
+                if(scores[j] > scores[best]) best = j;
+            if(best != i){
+                std::swap(scores[i], scores[best]);
+                std::swap(moveList.moves[i], moveList.moves[best]);
+            }
+        }
+
+        int currentBestScore = -INF;
+        Move currentBestMove = 0;
+
+        for(int i = 0; i < moveList.count; i++){
+            if(Time::shouldStop()) break;
             Move mv = moveList.moves[i];
             if(!move::makeMove(mv, side)) continue;
 
             int score = -negamax(-INF, INF, d - 1, side ^ 1, 1);
             move::unmakeMove(mv, side);
 
-            if(score > bestScore){
-                bestScore = score;
-                bestMove = mv;
+            if(score > currentBestScore){
+                currentBestScore = score;
+                currentBestMove = mv;
             }
         }
-        std::cout << "info depth " << d << " score " << bestScore
-                   << " bestmove " << perft::moveToString(bestMove) << "\n";
+
+        if(!Time::shouldStop() && currentBestMove){
+            bestMove = currentBestMove;
+            bestScore = currentBestScore;
+
+            auto now = std::chrono::steady_clock::now();
+            long long elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - searchStart).count();
+            long long nps = (elapsedMs > 0) ? (nodeCount * 1000 / elapsedMs) : nodeCount;
+
+            std::cout << "info depth " << d
+                      << " score cp " << bestScore
+                      << " nodes " << nodeCount
+                      << " time " << elapsedMs
+                      << " nps " << nps
+                      << " pv " << perft::moveToString(bestMove) << "\n";
+        }
     }
     return bestMove;
 }
