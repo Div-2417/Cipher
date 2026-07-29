@@ -14,6 +14,10 @@ bitboard rookMask[64];
 bitboard bishopAttack[64][512];
 bitboard rookAttack[64][4096];
 
+bitboard fileMasks[8];
+bitboard adjacentFileMask[8];
+bitboard passedPawnMask[2][64];
+
 bitboard Magic::bishopMagics[64] = {
     0x40040844404084ULL, 0x2004208a004208ULL, 0x10190041080202ULL, 0x108060845042010ULL,
     0x581104180800210ULL, 0x2112080446200010ULL, 0x1080820820060210ULL, 0x3c0808410220200ULL,
@@ -129,6 +133,31 @@ void BitBoard::clearBoard() {
 void BitBoard::init() {
     Magic::initLeaperAttacks();
     Magic::initSliderAttacks();
+    BitBoard::initPawnMasks();
+}
+
+void BitBoard::initPawnMasks(){
+    for(int f = 0; f < 8; f++)
+        fileMasks[f] = FileABB << f;
+
+    for(int f = 0; f < 8; f++){
+        adjacentFileMask[f] = 0ULL;
+        if(f > 0) adjacentFileMask[f] |= fileMasks[f - 1];
+        if(f < 7) adjacentFileMask[f] |= fileMasks[f + 1];
+    }
+
+    for(int sq = 0; sq < 64; sq++){
+        int file = sq % 8;
+        int rank = sq / 8;
+        bitboard span = fileMasks[file] | adjacentFileMask[file];
+
+        bitboard whiteMask = 0ULL, blackMask = 0ULL;
+        for(int r = rank + 1; r < 8; r++) whiteMask |= (span & (Rank1BB << (8 * r)));
+        for(int r = rank - 1; r >= 0; r--) blackMask |= (span & (Rank1BB << (8 * r)));
+
+        passedPawnMask[white][sq] = whiteMask;
+        passedPawnMask[black][sq] = blackMask;
+    }
 }
 
 
@@ -371,4 +400,3 @@ void Magic::initSliderAttacks(){
         }
     }
 }
-    

@@ -11,7 +11,7 @@ namespace helper{
     void AddEnPassant(int source, int target, int piece, MoveList& moveList);
     void AddCastling(int source, int target, int piece, MoveList& moveList);
     int moveScore(Move move);
-
+    int see(Move move);
 }
 
 namespace moveGen{

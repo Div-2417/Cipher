@@ -12,7 +12,8 @@ namespace search {
     void iterativeDeepening(int maxDepth);
     Move searchPosition(int depth, int side);
     int quiescence(int alpha, int beta, int side, int ply);
+    void resetSearchState();
 
 }
 
-#endif // SEARCH_H
+#endif

@@ -14,6 +14,8 @@
 #include "search.h"
 #include "time.h"
 #include "uci.h"
+#include "hash.h"
+#include "TT.h"
 
 namespace {
     const std::string kStartFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -155,10 +157,12 @@ namespace {
         searchThread = std::thread([=]() {
             Time::init(wtime, btime, winc, binc, movestogo, movetime, currentSide);
             Move bestMove = search::searchPosition(depth, currentSide);
-            if (!Time::shouldStop() && bestMove) {
+            if (bestMove) {
                 std::cout << "bestmove " << perft::moveToString(bestMove) << std::endl;
-            } else if (bestMove) {
-                std::cout << "bestmove " << perft::moveToString(bestMove) << std::endl;
+            } else {
+                // No legal move at the root (checkmate or stalemate): UCI still
+                // expects a reply, "0000" is the standard null-move convention.
+                std::cout << "bestmove 0000" << std::endl;
             }
             searchRunning.store(false);
         });
@@ -184,6 +188,8 @@ namespace UCI {
     void init()
     {
         BitBoard::init();
+        Zobrist::init();
+        TT::init(64); // 64MB default; UCI "Hash" option below still just advertises the range
         setPositionFromFen(kStartFen);
     }
 
@@ -205,6 +211,7 @@ namespace UCI {
             } else if (line == "isready") {
                 std::cout << "readyok" << std::endl;
             } else if (line == "ucinewgame") {
+                search::resetSearchState();
                 setPositionFromFen(kStartFen);
             } else if (line.rfind("position", 0) == 0) {
                 handlePosition(line);

@@ -22,6 +22,7 @@
 int fifty{0};
 MoveUndo undo_history[MAX_UNDO];
 int undo_index = 0;
+uint64_t repetitionHistory[MAX_UNDO];
 
 int move::makeMove(Move move,int side){
     if(undo_index >= MAX_UNDO - 1) return 0;
@@ -40,10 +41,13 @@ int move::makeMove(Move move,int side){
     undo_history[undo_index].enpassant = enpassant;
     undo_history[undo_index].castle = castle;
     undo_history[undo_index].captured_piece = -1;
-    
+    undo_history[undo_index].fifty = fifty;
+    undo_history[undo_index].hashKey = hashKey;
+
     //making the move
     pop_bit(bitboards[piece], source);
     set_bit(bitboards[piece], target);
+    hashKey ^= pieceKeys[piece][source] ^ pieceKeys[piece][target];
     fifty++;
 
     if (piece == Wp || piece == Bp) {
@@ -69,6 +73,7 @@ if (capture) {
         if(get_bit(bitboards[bbPiece], target)){
             undo_history[undo_index].captured_piece = bbPiece;
             pop_bit(bitboards[bbPiece], target);
+            hashKey ^= pieceKeys[bbPiece][target];
             break;
         }
     }
@@ -78,47 +83,59 @@ if (capture) {
     if (promoted) {
         pop_bit(bitboards[piece], target);
         set_bit(bitboards[promoted], target);
+        hashKey ^= pieceKeys[piece][target] ^ pieceKeys[promoted][target];
     }
 
     //handling enpassant
     if(ep){
         if(side == white){
             pop_bit(bitboards[Bp], target - 8);
+            hashKey ^= pieceKeys[Bp][target - 8];
         }else{
             pop_bit(bitboards[Wp], target + 8);
+            hashKey ^= pieceKeys[Wp][target + 8];
         }
     }
 
+    int oldEnpassant = enpassant;
     enpassant = no_sq;
     if(doublePush){
         enpassant = (side == white) ? target - 8 : target + 8;
     }
+    if(oldEnpassant != no_sq) hashKey ^= enpassantKeys[oldEnpassant];
+    if(enpassant != no_sq)    hashKey ^= enpassantKeys[enpassant];
 
     if (castling) {
         switch (target) {
             case g1:
                 pop_bit(bitboards[Wr], h1);
                 set_bit(bitboards[Wr], f1);
+                hashKey ^= pieceKeys[Wr][h1] ^ pieceKeys[Wr][f1];
                 break;
             case c1:
                 pop_bit(bitboards[Wr], a1);
                 set_bit(bitboards[Wr], d1);
+                hashKey ^= pieceKeys[Wr][a1] ^ pieceKeys[Wr][d1];
                 break;
             case g8:
                 pop_bit(bitboards[Br], h8);
                 set_bit(bitboards[Br], f8);
+                hashKey ^= pieceKeys[Br][h8] ^ pieceKeys[Br][f8];
                 break;
             case c8:
                 pop_bit(bitboards[Br], a8);
                 set_bit(bitboards[Br], d8);
+                hashKey ^= pieceKeys[Br][a8] ^ pieceKeys[Br][d8];
                 break;
             default:
                 break;
         }
     }
 
+    hashKey ^= castleKeys[castle];   // remove old castle-rights key
     castle &= castling_rights[source];
     castle &= castling_rights[target];
+    hashKey ^= castleKeys[castle];   // add new castle-rights key
 
     //reset occupancies
     memset(occupancies, 0ULL, sizeof(occupancies));
@@ -127,6 +144,7 @@ if (capture) {
     occupancies[both] = occupancies[white] | occupancies[black];
 
     side ^= 1; // side is now the opponent
+    hashKey ^= sideKey;
 
     // Find the king of the side that just moved (side ^ 1)
     int king_sq = __builtin_ctzll(bitboards[(side == white) ? Bk : Wk]);
@@ -134,10 +152,12 @@ if (capture) {
 
     if(helper::isSquareAttacked(king_sq, side)) {
         take_back();
+        hashKey = undo_history[undo_index].hashKey;
         return 0;
     }
 
-    // Move is legal, increment undo history index
+    // Move is legal: record hash for repetition detection, then bump undo index
+    repetitionHistory[undo_index] = hashKey;
     undo_index++;
     return 1;
 }
@@ -145,6 +165,7 @@ if (capture) {
 void move::unmakeMove(Move move, int side){
     // Decrement undo history index
     undo_index--;
+    hashKey = undo_history[undo_index].hashKey;
     
     int source    = get_move_source(move);
     int target    = get_move_target(move);
@@ -210,12 +231,8 @@ void move::unmakeMove(Move move, int side){
     enpassant = undo_history[undo_index].enpassant;
     castle = undo_history[undo_index].castle;
     
-    // Restore fifty-move counter
-    if (piece == Wp || piece == Bp || capture || ep) {
-        fifty = 0;  // Reset if it was a pawn or capture move
-    } else {
-        fifty--;
-    }
+    // Restore fifty-move counter to its exact pre-move value
+    fifty = undo_history[undo_index].fifty;
     
     //reset occupancies
     memset(occupancies, 0ULL, sizeof(occupancies));
@@ -223,4 +240,3 @@ void move::unmakeMove(Move move, int side){
     for(int p = Bp; p <= Bk; p++) occupancies[black] |= bitboards[p];
     occupancies[both] = occupancies[white] | occupancies[black];
 }
-

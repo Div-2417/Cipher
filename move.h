@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <string>
 
+#include "defs.h"
+#include "hash.h"
+
 using Move = uint32_t;
 
 //move encoding macro
@@ -39,8 +42,14 @@ struct MoveUndo {
     int captured_piece;
     int enpassant;
     int castle;
+    int fifty;
+    bitboard hashKey;
 };
 
+extern int fifty;
+extern MoveUndo undo_history[MAX_UNDO];
+extern int undo_index;
+extern uint64_t repetitionHistory[MAX_UNDO];
 
 /*
                            castling   move     in      in

@@ -17,7 +17,7 @@ namespace BitBoard {
     void printBoard(bitboard board);  // lowercase bitboard
     void printWholeBoard();  // prints all bitboards
     void clearBoard();
-
+    void initPawnMasks();
 }
 
 namespace Magic{
@@ -56,6 +56,11 @@ extern bitboard bishopMask[64];
 extern bitboard rookMask[64];
 extern bitboard bishopAttack[64][512];
 extern bitboard rookAttack[64][4096];
+
+//pawn masks
+extern bitboard fileMasks[8];
+extern bitboard adjacentFileMask[8];
+extern bitboard passedPawnMask[2][64];
 
 constexpr bitboard FileABB = 0x0101010101010101ULL;
 constexpr bitboard FileBBB = FileABB << 1;

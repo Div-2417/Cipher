@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 
 #include "defs.h"
 #include "bitboard.h"
@@ -86,6 +87,89 @@ int helper::moveScore(Move mv){
     // Quiets unscored for now
     return 0;
     }
+
+namespace {
+    // all pieces (either colour) currently attacking `square`, given arbitrary occupancy `occ`
+    bitboard attackersTo(int square, bitboard occ){
+        bitboard attackers = 0ULL;
+
+        attackers |= pawnAttack[black][square] & bitboards[Wp] & occ;
+        attackers |= pawnAttack[white][square] & bitboards[Bp] & occ;
+
+        attackers |= knightAttack[square] & (bitboards[Wn] | bitboards[Bn]) & occ;
+        attackers |= kingAttack[square]   & (bitboards[Wk] | bitboards[Bk]) & occ;
+
+        bitboard bishopRay = Magic::computeBishopAttackOTF(square, occ);
+        attackers |= bishopRay & (bitboards[Wb] | bitboards[Bb] | bitboards[Wq] | bitboards[Bq]) & occ;
+
+        bitboard rookRay = Magic::computeRookAttackOTF(square, occ);
+        attackers |= rookRay & (bitboards[Wr] | bitboards[Br] | bitboards[Wq] | bitboards[Bq]) & occ;
+
+        return attackers;
+    }
+
+    // pops (conceptually) the least valuable `side` attacker from `attackers`, returns its square
+    // and piece type, or -1 if `side` has no attacker left in the set.
+    int popLeastValuableAttacker(bitboard attackers, int side, int& pieceType){
+        int startPiece = (side == white) ? Wp : Bp;
+        for(int p = startPiece; p <= startPiece + 5; p++){
+            bitboard bb = attackers & bitboards[p];
+            if(bb){
+                pieceType = p;
+                return __builtin_ctzll(bb);
+            }
+        }
+        return -1;
+    }
+}
+
+int helper::see(Move mv){
+    int source = get_move_source(mv);
+    int target = get_move_target(mv);
+    int attackerPiece = get_move_piece(mv);
+    int side = (attackerPiece <= Wk) ? white : black;
+
+    int capturedValue = 0;
+    if(get_move_enpassant(mv)){
+        capturedValue = 100;
+    } else {
+        for(int p = Wp; p <= Bk; p++){
+            if(get_bit(bitboards[p], target)){ capturedValue = std::abs(pieceValue[p]); break; }
+        }
+    }
+
+    int gain[32];
+    int d = 0;
+    gain[0] = capturedValue;
+
+    bitboard occ = occupancies[both];
+    pop_bit(occ, source);
+
+    int attackingValue = std::abs(pieceValue[attackerPiece]);
+    int sideToMove = side ^ 1; // opponent recaptures next
+    bitboard attackers = attackersTo(target, occ);
+
+    while(true){
+        d++;
+        gain[d] = attackingValue - gain[d - 1];
+        if(std::max(-gain[d - 1], gain[d]) < 0) break; // further capturing can't improve result
+
+        int nextPieceType;
+        int nextSq = popLeastValuableAttacker(attackers, sideToMove, nextPieceType);
+        if(nextSq < 0) break;
+
+        pop_bit(occ, nextSq);
+        attackers = attackersTo(target, occ); // removing a piece can reveal new slider attacks
+
+        attackingValue = std::abs(pieceValue[nextPieceType]);
+        sideToMove ^= 1;
+        if(d >= 31) break; // safety bound, never realistically reached
+    }
+
+    while(--d) gain[d - 1] = -std::max(-gain[d - 1], gain[d]);
+
+    return gain[0];
+}
 
 void moveGen::generateAllMoves(int side, MoveList& movelist){
     movelist.count = 0;
@@ -265,4 +349,3 @@ void moveGen::generateAllCaptures(int side, MoveList& movelist){
         if(get_move_capture(all.moves[i]))
             movelist.add(all.moves[i]);
 }
-

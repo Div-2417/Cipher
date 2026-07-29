@@ -1,5 +1,3 @@
-//position.cpp
-
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -7,6 +5,8 @@
 #include "defs.h"
 #include "position.h"
 #include "bitboard.h"
+#include "move.h"
+#include "hash.h"
 
 fen FENnotation;
 
@@ -86,4 +86,9 @@ void position::loadFEN(const std::string& fen){
     for (int piece = Wp; piece <= Wk; piece++) occupancies[white] |= bitboards[piece];
     for (int piece = Bp; piece <= Bk; piece++) occupancies[black] |= bitboards[piece];
     occupancies[both] = occupancies[white] | occupancies[black];
+
+    fifty = FENnotation.halfmoveClock;
+    undo_index = 0;
+    hashKey = Zobrist::computeHash(FENnotation.whiteToMove ? white : black);
+    repetitionHistory[0] = hashKey;
 }
