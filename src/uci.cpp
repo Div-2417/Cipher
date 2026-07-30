@@ -24,6 +24,8 @@ namespace {
     std::atomic<bool> searchRunning{false};
     std::atomic<bool> quitRequested{false};
     int currentSide = white;
+    int hashSizeMB = 16;
+    bool ponderEnabled = false;
 
     void setPositionFromFen(const std::string& fen)
     {
@@ -158,7 +160,14 @@ namespace {
             Time::init(wtime, btime, winc, binc, movestogo, movetime, currentSide);
             Move bestMove = search::searchPosition(depth, currentSide);
             if (bestMove) {
-                std::cout << "bestmove " << perft::moveToString(bestMove) << std::endl;
+                std::cout << "bestmove " << perft::moveToString(bestMove);
+                if (ponderEnabled) {
+                    Move ponder = search::getPonderMove();
+                    if (ponder) {
+                        std::cout << " ponder " << perft::moveToString(ponder);
+                    }
+                }
+                std::cout << std::endl;
             } else {
                 // No legal move at the root (checkmate or stalemate): UCI still
                 // expects a reply, "0000" is the standard null-move convention.
@@ -172,14 +181,28 @@ namespace {
     {
         std::istringstream stream(line);
         std::string token;
-        std::vector<std::string> parts;
-        while (stream >> token) {
-            parts.push_back(token);
+        stream >> token; // "setoption"
+        stream >> token; // "name"
+
+        std::string name;
+        while (stream >> token && token != "value") {
+            if (!name.empty()) name += " ";
+            name += token;
         }
 
-        if (parts.size() >= 2 && parts[0] == "setoption") {
-            // The engine accepts the option silently and keeps defaults.
-            (void)parts;
+        if (token == "value" && !name.empty()) {
+            std::string value;
+            if (stream >> value) {
+                if (name == "Hash") {
+                    int newHash = std::stoi(value);
+                    if (newHash >= 1 && newHash <= 1024) {
+                        hashSizeMB = newHash;
+                        TT::init(hashSizeMB);
+                    }
+                } else if (name == "Ponder") {
+                    ponderEnabled = (value == "true");
+                }
+            }
         }
     }
 }
@@ -189,7 +212,7 @@ namespace UCI {
     {
         BitBoard::init();
         Zobrist::init();
-        TT::init(64); // 64MB default; UCI "Hash" option below still just advertises the range
+        TT::init(hashSizeMB);
         setPositionFromFen(kStartFen);
     }
 
@@ -219,6 +242,9 @@ namespace UCI {
                 handleSetOption(line);
             } else if (line.rfind("go", 0) == 0) {
                 handleGo(line);
+            } else if (line == "ponderhit") {
+                // The opponent played the expected ponder move.
+                // The ongoing search becomes real; no special action needed.
             } else if (line == "stop") {
                 stopSearchThread();
             } else if (line == "quit") {
@@ -227,6 +253,14 @@ namespace UCI {
                 break;
             } else if (line == "register") {
                 // Not required by this engine yet.
+            } else if (line.rfind("perft", 0) == 0) {
+                std::istringstream stream(line);
+                std::string token;
+                int depth = 0;
+                stream >> token >> depth;
+                if (depth > 0) {
+                    perft::divide(depth, currentSide);
+                }
             }
         }
     }

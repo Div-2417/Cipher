@@ -38,13 +38,13 @@ Cipher is a UCI-compatible chess engine written in C++17, built from scratch and
 - **Mobility scoring** for knights, bishops, rooks, and queens
 
 ### Protocol
-- Full **UCI (Universal Chess Interface)** implementation
-- `position`, `go`, `stop`, `quit`, `ucinewgame` commands supported
-- `info` lines with depth, score, nodes, time, nps, and PV
-- Time management with hard/soft limits
+ - Full **UCI (Universal Chess Interface)** implementation
+ - `info` lines with depth, score, nodes, time, nps, and PV
+ - Time management with hard/soft limits
+ - `setoption` for Hash size (1–1024 MB) and Ponder toggle
 
 ### Testing
-- **Perft** function for move generation correctness verification
+ - **Perft** function for move generation correctness verification (accessible via `perft <depth>` UCI command)
 
 ---
 
@@ -78,6 +78,9 @@ The binary will be output as `cipher`.
 
 Cipher communicates via UCI. You can connect it to any UCI-compatible chess GUI (e.g., [Arena](http://www.playwitharena.de/), [Cute Chess](https://cutechess.com/), [Lucas Chess](https://lucaschess.pythonanywhere.com/)) or use it from the terminal:
 
+### Interactive session examples
+
+**Basic search:**
 ```bash
 ./cipher
 uci
@@ -85,6 +88,48 @@ isready
 position startpos
 go depth 10
 ```
+
+**Set Hash size and search with time control:**
+```
+setoption name Hash value 128
+position startpos
+go wtime 300000 btime 300000 winc 2000 binc 2000
+```
+
+**Test move generation with Perft:**
+```
+position startpos
+perft 5
+```
+
+**Ponder mode (when supported by GUI):**
+```
+setoption name Ponder value true
+position startpos
+go depth 12
+# engine outputs: bestmove e2e4 ponder e7e5
+```
+
+### UCI Command Reference
+
+| Command | Description |
+|---------|-------------|
+| `uci` | Handshake — engine responds with id, options, and `uciok` |
+| `isready` | Engine responds `readyok` when ready |
+| `ucinewgame` | Reset search state, TT, and position to startpos |
+| `position startpos [moves <m1> <m2> ...]` | Set starting position with optional move list |
+| `position fen <fen> [moves <m1> ...]` | Set position from FEN string |
+| `go depth <d>` | Search to depth `d` |
+| `go movetime <t>` | Search for `t` milliseconds |
+| `go wtime <t> btime <t> [winc <t>] [binc <t>] [movestogo <n>]` | Search with time management |
+| `go infinite` | Search indefinitely (use `stop` to halt) |
+| `go ponder` | Start pondering (converted to normal search) |
+| `ponderhit` | Opponent played expected ponder move |
+| `stop` | Stop search and output `bestmove` |
+| `setoption name Hash value <N>` | Set TT size in MB (1–1024, default 16) |
+| `setoption name Ponder value <true/false>` | Enable/disable ponder move output |
+| `perft <depth>` | Run perft divide from current position |
+| `quit` | Exit the engine |
 
 ---
 

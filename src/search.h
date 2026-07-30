@@ -13,6 +13,7 @@ namespace search {
     Move searchPosition(int depth, int side);
     int quiescence(int alpha, int beta, int side, int ply);
     void resetSearchState();
+    Move getPonderMove();
 
 }
 

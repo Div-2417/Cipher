@@ -422,10 +422,15 @@ Move search::searchPosition(int maxDepth, int side){
                       << " pv";
             for(int i = 0; i < pvLength[0]; i++)
                 std::cout << " " << perft::moveToString(pvTable[0][i]);
-            std::cout << "\n";
+            std::cout << std::endl;
         }
     }
     return bestMove;
+}
+
+Move search::getPonderMove() {
+    if (pvLength[0] >= 2) return pvTable[0][1];
+    return 0;
 }
 
 void search::resetSearchState(){
