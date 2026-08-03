@@ -3,6 +3,14 @@
 Cipher is a UCI-compatible chess engine written in C++17, built from scratch and inspired by [BBC (Bit Board Chess)](https://github.com/maksimKorzh/bbc) and [VICE](https://github.com/bluefeversoft/vice_chess_engine).
 
 ---
+## Rating (approximate)
+
+Scored an estimated Elo of ~1700 in 251 games against Stockfish configured at its internal “1600” strength level.  
+This is an informal, internal estimate and not an official CCRL or other published rating.
+
+The full PGN of these games is available in the test directory.
+
+---
 
 ## Features
 
@@ -156,6 +164,7 @@ All source code lives in the `src/` directory:
 
 ## Roadmap
 
+- [ ] CCRL rating for formal estimate
 - [ ] NNUE
 - [ ] Opening book support
 - [ ] Endgame tablebases

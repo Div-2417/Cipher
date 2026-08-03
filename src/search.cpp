@@ -236,12 +236,11 @@ int search::negamax(int alpha, int beta, int depth, int side, int ply){
     if(Time::shouldStop()) return 0;
     nodeCount++;
 
+    pvLength[clampPly(ply)] = ply;
+
     if(ply > 0 && (fifty >= 100 || isRepetition())) return 0;
 
-    if(depth == 0){
-        pvLength[clampPly(ply)] = ply;
-        return quiescence(alpha, beta, side, ply);
-    }
+    if(depth == 0) return quiescence(alpha, beta, side, ply);
 
     Move ttMove = 0;
     int ttScore = 0;
@@ -270,7 +269,6 @@ int search::negamax(int alpha, int beta, int depth, int side, int ply){
     int legalMoves = 0;
     int bestScore = -INF;
     Move bestMoveLocal = 0;
-    pvLength[clampPly(ply)] = ply;
 
     for(int i = 0; i < moveList.count; i++){
         Move mv = moveList.moves[i];
