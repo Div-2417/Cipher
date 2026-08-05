@@ -4,3 +4,6 @@
 cipher
 cipher.exe
 *.exe
+
+# Markdown files
+*.md

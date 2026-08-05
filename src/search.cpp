@@ -168,7 +168,7 @@ int search::evaluate(int side){
         while(bb){
             int sq = __builtin_ctzll(bb);
             bool isWhite = (piece <= Wk);
-            int pstSq = isWhite ? sq : mirror(sq);
+            int pstSq = isWhite ? mirror(sq) : sq;
             int file = sq % 8;
             int ownSide = isWhite ? white : black;
 
