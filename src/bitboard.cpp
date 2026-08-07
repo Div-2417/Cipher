@@ -5,6 +5,7 @@
 
 bitboard bitboards[13];
 bitboard occupancies[3];
+int8_t mailbox[64];
 
 bitboard pawnAttack[2][64];
 bitboard knightAttack[64];
@@ -128,6 +129,7 @@ void BitBoard::printWholeBoard(){
 
 void BitBoard::clearBoard() {
     for (int i=0;i<13;i++) bitboards[i]=0ULL;
+    for (int i=0;i<64;i++) mailbox[i]=0;
 }
 
 void BitBoard::init() {

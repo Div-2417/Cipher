@@ -56,6 +56,7 @@ void position::loadFEN(const std::string& fen){
             int piece = charToPiece(c);
             if (sq >= 0 && sq < 64 && piece >= 1 && piece < 13) {
                 bitboards[piece] |= (1ULL << sq);
+                mailbox[sq] = (int8_t)piece;
             }
             sq++;
         }

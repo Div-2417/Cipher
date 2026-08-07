@@ -9,6 +9,7 @@ using bitboard = uint64_t;
 
 extern bitboard bitboards[13]; 
 extern bitboard occupancies[3];
+extern int8_t mailbox[64]; // piece-on-square, 0 = empty
 extern int enpassant;
 extern int castle;
 

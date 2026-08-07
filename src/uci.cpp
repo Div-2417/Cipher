@@ -127,7 +127,6 @@ namespace {
         int winc = 0;
         int binc = 0;
         int movestogo = 0;
-        bool infinite = false;
 
         std::istringstream stream(line);
         std::string token;
@@ -147,7 +146,8 @@ namespace {
             } else if (token == "movestogo") {
                 stream >> movestogo;
             } else if (token == "infinite") {
-                infinite = true;
+                // parsed and ignored: search until "stop" is already the
+                // default behaviour when no other limit applies
             }
         }
 

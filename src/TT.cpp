@@ -64,7 +64,7 @@ void TT::store(uint64_t key, int depth, int score, int flag, Move bestMove, int 
     if(e.key != key || depth >= e.depth){
         e.key      = key;
         e.depth    = (int16_t)depth;
-        e.flag     = (int16_t)flag;
+        e.flag     = (int8_t)flag;
         e.score    = (int32_t)toTT(score, ply);
         e.bestMove = bestMove;
     }

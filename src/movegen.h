@@ -10,7 +10,6 @@ namespace helper{
     void AddCapture(int source, int target, int piece, int promoted, MoveList& moveList);
     void AddEnPassant(int source, int target, int piece, MoveList& moveList);
     void AddCastling(int source, int target, int piece, MoveList& moveList);
-    int moveScore(Move move);
     int see(Move move);
 }
 

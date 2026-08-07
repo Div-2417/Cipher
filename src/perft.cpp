@@ -2,10 +2,8 @@
 #include <string>
 
 #include "defs.h"
-#include "bitboard.h"
 #include "move.h"
 #include "movegen.h"
-#include "position.h"
 #include "perft.h"
 
 std::string perft::moveToString(Move move) {

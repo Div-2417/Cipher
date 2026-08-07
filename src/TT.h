@@ -11,10 +11,10 @@ enum TTFlag { TT_EXACT, TT_ALPHA, TT_BETA };
 
 struct TTEntry {
     uint64_t key   = 0;
-    bitboard  depth = -1;
-    bitboard  flag  = TT_EXACT;
     int32_t  score = 0;
     Move     bestMove = 0;
+    int16_t  depth = -1;
+    int8_t   flag  = TT_EXACT;
 };
 
 namespace TT {

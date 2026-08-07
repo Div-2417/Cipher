@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cmath>
 #include <algorithm>
 
@@ -19,10 +18,10 @@ bool helper::isSquareAttacked(int square, int side){
     if(knightAttack[square] & ((side == white) ? bitboards[Wn] : bitboards[Bn])) return true;;
 
     //by bishop
-    if (Magic::computeBishopAttackOTF(square, occupancies[both]) & ((side == white) ? bitboards[Wb] : bitboards[Bb])) return true;
+    if (Magic::getBishopAttacks(square, occupancies[both]) & ((side == white) ? bitboards[Wb] : bitboards[Bb])) return true;
 
     //by rook
-    if (Magic::computeRookAttackOTF(square,occupancies[both]) & ((side == white) ? bitboards[Wr] : bitboards[Br])) return true;
+    if (Magic::getRookAttacks(square, occupancies[both]) & ((side == white) ? bitboards[Wr] : bitboards[Br])) return true;
 
     //by queen
     if (Magic::ComputeQueenAttack(square, occupancies[both]) & ((side == white) ? bitboards[Wq] : bitboards[Bq])) return true;
@@ -53,41 +52,6 @@ void helper::AddCastling(int source, int target, int piece, MoveList &moveList){
     moveList.add(m);
 }
 
-int helper::moveScore(Move mv){
-
-    if (get_move_capture(mv)) { 
-        int attacker = get_move_piece(mv);
-        int target = get_move_target(mv);
-        int victimValue = 0;
-
-        //enpassant capture
-        if (get_move_enpassant(mv)) {
-            victimValue = 100; // Absolute value of a pawn based on pieceValue array
-        } 
-        // Normal capture
-        else {
-            for (int piece = Wp; piece <= Bk; piece++) {
-                if (get_bit(bitboards[piece], target)) {
-                    //black pieces have -ve values in piecevalue
-                    victimValue = std::abs(pieceValue[piece]);
-                    break;
-                }
-            }
-        }
-
-        int attackerValue = std::abs(pieceValue[attacker]);
-
-        //MVV-LVA Score
-        // +10000 ensures captures are scored higher than quiet moves.
-        // + victimValue prioritizes capturing the most valuable piece (MVV).
-        // - (attackerValue / 100) breaks ties by preferring the least valuable attacker (LVA).
-        return 10000 + victimValue - (attackerValue / 100);
-    }
-    
-    // Quiets unscored for now
-    return 0;
-    }
-
 namespace {
     // all pieces (either colour) currently attacking `square`, given arbitrary occupancy `occ`
     bitboard attackersTo(int square, bitboard occ){
@@ -99,10 +63,10 @@ namespace {
         attackers |= knightAttack[square] & (bitboards[Wn] | bitboards[Bn]) & occ;
         attackers |= kingAttack[square]   & (bitboards[Wk] | bitboards[Bk]) & occ;
 
-        bitboard bishopRay = Magic::computeBishopAttackOTF(square, occ);
+        bitboard bishopRay = Magic::getBishopAttacks(square, occ);
         attackers |= bishopRay & (bitboards[Wb] | bitboards[Bb] | bitboards[Wq] | bitboards[Bq]) & occ;
 
-        bitboard rookRay = Magic::computeRookAttackOTF(square, occ);
+        bitboard rookRay = Magic::getRookAttacks(square, occ);
         attackers |= rookRay & (bitboards[Wr] | bitboards[Br] | bitboards[Wq] | bitboards[Bq]) & occ;
 
         return attackers;
@@ -133,9 +97,7 @@ int helper::see(Move mv){
     if(get_move_enpassant(mv)){
         capturedValue = 100;
     } else {
-        for(int p = Wp; p <= Bk; p++){
-            if(get_bit(bitboards[p], target)){ capturedValue = std::abs(pieceValue[p]); break; }
-        }
+        capturedValue = std::abs(pieceValue[mailbox[target]]);
     }
 
     int gain[32];
@@ -179,7 +141,6 @@ void moveGen::generateAllMoves(int side, MoveList& movelist){
 
     //helper variables
     int opponent = (side == white) ? black : white;
-    int pawnPiece = (side == white) ? Wp : Bp;
     int promoQ = (side == white) ? Wq : Bq;
     int promoR = (side == white) ? Wr : Br;
     int promoB = (side == white) ? Wb : Bb;
@@ -342,10 +303,115 @@ void moveGen::generateAllMoves(int side, MoveList& movelist){
 }
 
 void moveGen::generateAllCaptures(int side, MoveList& movelist){
-    MoveList all;
-    generateAllMoves(side, all);
     movelist.count = 0;
-    for(int i = 0; i < all.count; i++)
-        if(get_move_capture(all.moves[i]))
-            movelist.add(all.moves[i]);
+    int opponent = (side == white) ? black : white;
+    bitboard targets = occupancies[opponent];
+
+    int source, target;
+    bitboard attacks, bitboardPieces;
+
+    int promoQ = (side == white) ? Wq : Bq;
+    int promoR = (side == white) ? Wr : Br;
+    int promoB = (side == white) ? Wb : Bb;
+    int promoN = (side == white) ? Wn : Bn;
+
+    for (int piece = Wp; piece <= Bk; piece++){
+        bitboardPieces = bitboards[piece];
+
+        //pawns
+        if((piece == Wp && side == white) || (piece == Bp && side == black)){
+
+            while(bitboardPieces){
+                source = __builtin_ctzll(bitboardPieces);
+                int rank = source / 8;
+                bool onPromoRank = (side == white) ? (rank == 6) : (rank == 1);
+
+                //pawn captures
+                attacks = pawnAttack[side][source] & targets;
+                while(attacks){
+                    target = __builtin_ctzll(attacks);
+
+                    if (onPromoRank) {
+                        movelist.add(encode_move(source, target, piece, promoQ, 1, 0, 0, 0));
+                        movelist.add(encode_move(source, target, piece, promoR, 1, 0, 0, 0));
+                        movelist.add(encode_move(source, target, piece, promoB, 1, 0, 0, 0));
+                        movelist.add(encode_move(source, target, piece, promoN, 1, 0, 0, 0));
+                    }else{
+                        movelist.add(encode_move(source, target, piece, 0, 1, 0, 0, 0));
+                    }
+                    pop_bit(attacks, target);
+                }
+
+                //en passant
+                if (enpassant != no_sq) {
+                    bitboard ep_attack = pawnAttack[side][source] & (1ULL << enpassant);
+                    if (ep_attack) {
+                        target = __builtin_ctzll(ep_attack);
+                        movelist.add(encode_move(source, target, piece, 0, 1, 0, 1, 0));
+                    }
+                }
+
+                pop_bit(bitboardPieces, source);
+            }
+        }
+
+        //knights
+        else if((piece == Wn && side == white) || (piece == Bn && side == black)){
+
+            while(bitboardPieces){
+                source = __builtin_ctzll(bitboardPieces);
+                attacks = knightAttack[source] & targets;
+
+                while(attacks){
+                    target = __builtin_ctzll(attacks);
+                    movelist.add(encode_move(source, target, piece, 0, 1, 0, 0, 0));
+                    pop_bit(attacks, target);
+                }
+                pop_bit(bitboardPieces, source);
+            }
+        }
+
+        //bishop,rook,queen
+        else if(piece == Wb || piece == Bb || piece == Wr || piece == Br || piece == Wq || piece == Bq){
+            bool isWhitePiece = (piece == Wb || piece == Wr || piece == Wq);
+            if((isWhitePiece && side != white) || (!isWhitePiece && side != black)) continue;
+
+            while(bitboardPieces){
+                source = __builtin_ctzll(bitboardPieces);
+
+                if(piece == Wb || piece == Bb)
+                    attacks = Magic::getBishopAttacks(source, occupancies[both]);
+                else if(piece == Wr || piece == Br)
+                    attacks = Magic::getRookAttacks(source, occupancies[both]);
+                else
+                    attacks = Magic::getBishopAttacks(source, occupancies[both]) | Magic::getRookAttacks(source, occupancies[both]);
+
+                attacks &= targets;
+
+                while(attacks){
+                    target = __builtin_ctzll(attacks);
+                    movelist.add(encode_move(source, target, piece, 0, 1, 0, 0, 0));
+                    pop_bit(attacks, target);
+                }
+                pop_bit(bitboardPieces, source);
+            }
+        }
+
+        //king
+        else if(piece == Wk || piece == Bk){
+            if((piece == Wk && side != white) || (piece == Bk && side != black)) continue;
+
+            while(bitboardPieces){
+                source = __builtin_ctzll(bitboardPieces);
+                attacks = kingAttack[source] & targets;
+
+                while(attacks){
+                    target = __builtin_ctzll(attacks);
+                    movelist.add(encode_move(source, target, piece, 0, 1, 0, 0, 0));
+                    pop_bit(attacks, target);
+                }
+                pop_bit(bitboardPieces, source);
+            }
+        }
+    }
 }

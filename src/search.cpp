@@ -56,7 +56,7 @@ namespace {
         return historyScore[get_move_piece(mv)][get_move_target(mv)];
     }
 
-    void orderMoves(MoveList& moveList, int ply, Move ttMove){
+    void orderMoves(MoveList& moveList, int ply, Move ttMove, int* outScores = nullptr){
         int scores[256];
         for(int i = 0; i < moveList.count; i++)
             scores[i] = scoreMoveForOrdering(moveList.moves[i], ply, ttMove);
@@ -70,6 +70,11 @@ namespace {
                 std::swap(moveList.moves[i], moveList.moves[best]);
             }
         }
+
+        // scores stay in sync with the sorted move list
+        if(outScores)
+            for(int i = 0; i < moveList.count; i++)
+                outScores[i] = scores[i];
     }
 
     void recordCutoff(Move mv, int depth, int ply){
@@ -103,7 +108,7 @@ namespace {
         return false;
     }
 
-    // null-move: flips side to move without touching the board (search-only trick)
+    // null-move: flips side to move without touching the board
     struct NullUndo { int enpassant; uint64_t hashKey; };
 
     NullUndo makeNullMove(){
@@ -124,10 +129,15 @@ namespace {
     RootResult searchRoot(int alpha, int beta, int depth, int side){
         RootResult result;
 
+        Move ttMove = 0;
+        int ttScore = 0;
+        TT::probe(hashKey, depth, alpha, beta, 0, ttScore, ttMove);
+
         MoveList moveList;
         moveGen::generateAllMoves(side, moveList);
-        orderMoves(moveList, 0, 0);
+        orderMoves(moveList, 0, ttMove);
 
+        int originalAlpha = alpha;
         int legalMoves = 0;
         pvLength[0] = 0;
 
@@ -153,6 +163,12 @@ namespace {
         if(legalMoves == 0){
             int kingSq = __builtin_ctzll(bitboards[(side == white) ? Wk : Bk]);
             result.score = helper::isSquareAttacked(kingSq, side ^ 1) ? -MATE_SCORE : 0;
+        }
+
+        if(!Time::shouldStop() && legalMoves > 0){
+            int flag = (result.score <= originalAlpha) ? TT_ALPHA
+                     : (result.score >= beta ? TT_BETA : TT_EXACT);
+            TT::store(hashKey, depth, result.score, flag, result.move, 0);
         }
 
         return result;
@@ -249,8 +265,18 @@ int search::negamax(int alpha, int beta, int depth, int side, int ply){
     int kingSq = __builtin_ctzll(bitboards[(side == white) ? Wk : Bk]);
     bool inCheck = helper::isSquareAttacked(kingSq, side ^ 1);
 
+    // check extension: tactical lines get one extra ply
+    if(inCheck) depth += 1;
+
+    // reverse futility pruning: if even a generous static-eval margin can't
+    // reach beta, the node is hopeless; return the static eval
+    if(depth <= 2 && !inCheck && ply > 0){
+        int staticEval = search::evaluate(side);
+        if(staticEval - 150 * depth >= beta) return staticEval;
+    }
+
     // null-move pruning: skip a turn and see if we're still doing fine; if so, this
-    // node is unlikely to need full search. Disabled in check / low material (zugzwang risk).
+    // node is unlikely to need full search
     if(depth >= 3 && !inCheck && ply > 0 && hasNonPawnMaterial(side)){
         NullUndo nu = makeNullMove();
         int R = (depth > 6) ? 3 : 2;
@@ -272,6 +298,12 @@ int search::negamax(int alpha, int beta, int depth, int side, int ply){
 
     for(int i = 0; i < moveList.count; i++){
         Move mv = moveList.moves[i];
+
+        // Late Move Pruning: at shallow depth, quiet moves deep in the ordering
+        // are unlikely to beat alpha; skip them before even making the move
+        if(depth <= 3 && !inCheck && legalMoves > 4 + depth * depth
+           && !get_move_capture(mv) && !get_move_promoted(mv) && mv != ttMove) continue;
+
         if(!move::makeMove(mv, side)) continue;
         legalMoves++;
 
@@ -344,15 +376,27 @@ int search::quiescence(int alpha, int beta, int side, int ply){
     } else {
         moveGen::generateAllCaptures(side, moveList);
     }
-    orderMoves(moveList, ply, 0);
+
+    // scores[] carries the SEE values already computed for move ordering, so
+    // the SEE pruning below is free
+    int scores[256];
+    orderMoves(moveList, ply, 0, scores);
 
     int legalMoves = 0;
     for(int i = 0; i < moveList.count; i++){
         Move mv = moveList.moves[i];
 
-        // SEE pruning: don't even try captures that lose material outright, unless
-        // we're in check (then every legal reply matters, mate defenses included).
-        if(!inCheck && get_move_capture(mv) && helper::see(mv) < 0) continue;
+        if(!inCheck && get_move_capture(mv)){
+
+            // delta pruning: even the captured piece plus a margin can't close
+            // the gap to alpha, so this capture is hopeless
+            int victim = get_move_enpassant(mv) ? 100 : std::abs(pieceValue[mailbox[get_move_target(mv)]]);
+            if(standPat + victim + 200 < alpha) continue;
+
+            // SEE pruning: don't even try captures that lose material outright,
+            // unless we're in check (then every legal reply matters)
+            if(scores[i] < 0) continue;
+        }
 
         if(!move::makeMove(mv, side)) continue;
         legalMoves++;
