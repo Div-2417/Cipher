@@ -5,7 +5,7 @@ Cipher is a UCI-compatible chess engine written in C++17, built from scratch and
 ---
 ## Rating (approximate)
 
-Scored an estimated Elo of ~1700 in 251 games against Stockfish configured at its internal “1600” strength level.  
+Scored an estimated Elo of ~2650 in multiple rounds against Stockfish configured at different strength levels.  
 This is an informal, internal estimate and not an official CCRL or other published rating.
 
 The full PGN of these games is available in the test directory.
