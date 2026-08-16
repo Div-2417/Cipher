@@ -18,6 +18,9 @@ enum { no_sq = 64 };
 enum { Wp=1, Wn=2,Wb=3,Wr=4,Wq=5,Wk=6,
         Bp=7,Bn=8,Bb=9,Br=10,Bq=11,Bk=12 };
 
+//Cipher piece code to Stockfish piece codes
+extern int nnue_pieces[12];        
+
 //for basic eval
 static const int pieceValue[13] = {
     0, 100,320,330,500,900,20000,

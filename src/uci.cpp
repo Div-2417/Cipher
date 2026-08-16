@@ -4,6 +4,8 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <unistd.h>
+#include <limits.h>
 
 #include "bitboard.h"
 #include "defs.h"
@@ -16,6 +18,7 @@
 #include "uci.h"
 #include "hash.h"
 #include "TT.h"
+#include "nnueEval.h"
 
 namespace {
     const std::string kStartFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -24,17 +27,30 @@ namespace {
     std::atomic<bool> searchRunning{false};
     std::atomic<bool> quitRequested{false};
     int currentSide = white;
-    int hashSizeMB = 16;
+    int hashSizeMB = 128;
     bool ponderEnabled = false;
 
-    void setPositionFromFen(const std::string& fen)
-    {
+    std::string defaultEvalPath(){
+        char buf[PATH_MAX];
+        ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+        if (len != -1) {
+            buf[len] = '\0';
+            std::string exePath(buf);
+            std::string::size_type pos = exePath.rfind('/');
+            if (pos != std::string::npos)
+                return exePath.substr(0, pos) + "/src/nn-62ef826d1a6d.nnue";
+        }
+        return "src/nn-62ef826d1a6d.nnue";
+    }
+
+    std::string evalFileName = defaultEvalPath();
+
+    void setPositionFromFen(const std::string& fen){
         position::loadFEN(fen);
         currentSide = FENnotation.whiteToMove ? white : black;
     }
 
-    bool applyMoveString(const std::string& moveStr)
-    {
+    bool applyMoveString(const std::string& moveStr){
         MoveList moves;
         moveGen::generateAllMoves(currentSide, moves);
 
@@ -51,8 +67,7 @@ namespace {
         return false;
     }
 
-    void stopSearchThread()
-    {
+    void stopSearchThread(){
         stopSearch.store(true);
         if (searchThread.joinable()) {
             searchThread.join();
@@ -60,8 +75,7 @@ namespace {
         searchRunning.store(false);
     }
 
-    std::string trim(const std::string& input)
-    {
+    std::string trim(const std::string& input){
         std::string result = input;
         const auto begin = result.find_first_not_of(" \t\r\n");
         if (begin == std::string::npos) {
@@ -71,8 +85,7 @@ namespace {
         return result.substr(begin, end - begin + 1);
     }
 
-    void handlePosition(const std::string& line)
-    {
+    void handlePosition(const std::string& line){
         std::istringstream stream(line);
         std::string token;
         std::vector<std::string> parts;
@@ -114,8 +127,7 @@ namespace {
         }
     }
 
-    void handleGo(const std::string& line)
-    {
+    void handleGo(const std::string& line){
         if (searchThread.joinable()) {
             stopSearchThread();
         }
@@ -177,8 +189,7 @@ namespace {
         });
     }
 
-    void handleSetOption(const std::string& line)
-    {
+    void handleSetOption(const std::string& line){
         std::istringstream stream(line);
         std::string token;
         stream >> token; // "setoption"
@@ -201,6 +212,9 @@ namespace {
                     }
                 } else if (name == "Ponder") {
                     ponderEnabled = (value == "true");
+                } else if (name == "EvalFile") {
+                    evalFileName = value;
+                    nnue::init_nnue(&evalFileName[0]);
                 }
             }
         }
@@ -208,16 +222,16 @@ namespace {
 }
 
 namespace UCI {
-    void init()
-    {
+
+    void init(){
         BitBoard::init();
         Zobrist::init();
         TT::init(hashSizeMB);
         setPositionFromFen(kStartFen);
+        nnue::init_nnue(&evalFileName[0]);
     }
 
-    void loop()
-    {
+    void loop(){
         std::string line;
         while (std::getline(std::cin, line)) {
             line = trim(line);
@@ -228,8 +242,9 @@ namespace UCI {
             if (line == "uci") {
                 std::cout << "id name Cipher" << std::endl;
                 std::cout << "id author Div2417" << std::endl;
-                std::cout << "option name Hash type spin default 16 min 1 max 1024" << std::endl;
+                std::cout << "option name Hash type spin default 128 min 1 max 1024" << std::endl;
                 std::cout << "option name Ponder type check default false" << std::endl;
+                std::cout << "option name EvalFile type string default " << evalFileName << std::endl;
                 std::cout << "uciok" << std::endl;
             } else if (line == "isready") {
                 std::cout << "readyok" << std::endl;

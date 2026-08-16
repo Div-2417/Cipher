@@ -165,7 +165,7 @@ All source code lives in the `src/` directory:
 ## Roadmap
 
 - [ ] CCRL rating for formal estimate
-- [ ] NNUE
+- [x] NNUE
 - [ ] Opening book support
 - [ ] Endgame tablebases
 

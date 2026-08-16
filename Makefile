@@ -1,9 +1,9 @@
 # Cipher Chess Engine Makefile
 
 CXX := g++
-CXXFLAGS := -std=c++17 -O3 -march=native -flto -Wall -Wextra
+CXXFLAGS := -std=c++17 -O3 -march=native -Wall -Wextra
 TARGET := cipher
-SOURCES := $(wildcard src/*.cpp)
+SOURCES := $(wildcard src/*.cpp) $(wildcard src/nnue/*.cpp)
 OBJECTS := $(SOURCES:src/%.cpp=src/%.o)
 
 .PHONY: all build clean run help

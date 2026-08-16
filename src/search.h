@@ -3,6 +3,8 @@
 
 #include "defs.h"
 #include "move.h"
+#include "bitboard.h"
+#include "nnueEval.h"
 
 extern long long nodeCount;
 

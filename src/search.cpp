@@ -12,8 +12,11 @@
 #include "time.h"
 #include "hash.h"
 #include "TT.h"
+#include "nnueEval.h"
 
 long long nodeCount = 0;
+
+int nnue_pieces[12] = {6,5,4,3,2,1,12,11,10,9,8,7};
 
 namespace {
     // headroom beyond MAX_PLY so a custom "go depth N>64" from a GUI can't index out of bounds
@@ -176,7 +179,7 @@ namespace {
 }
 
 int search::evaluate(int side){
-    int score = 0;
+    /*int score = 0;
     int phase = gamePhase();
 
     for(int piece = Wp; piece <= Bk; piece++){
@@ -245,7 +248,43 @@ int search::evaluate(int side){
             pop_bit(bb, sq);
         }
     }
-    return (side == white) ? score : -score;
+    return (side == white) ? score : -score;*/
+
+    bitboard bitboard;
+    int piece,square;
+
+    int pieces[33];
+    int squares[33];
+
+    int index{2};
+
+    for (int bbPiece = Wp; bbPiece <= Bk; bbPiece++) {
+        bitboard = bitboards[bbPiece];
+        
+        while (bitboard){
+            piece = bbPiece;
+            square = __builtin_ctzll(bitboard);
+
+            if(piece == Wk){
+                pieces[0]= nnue_pieces[piece - 1];
+                squares[0]= square;
+            }else if(piece == Bk){
+                pieces[1]= nnue_pieces[piece - 1];
+                squares[1]= square;
+            }else{
+                pieces[index]= nnue_pieces[piece - 1];
+                squares[index]= square;
+                index++;
+            }
+
+            pop_bit(bitboard, square);
+        }
+    }
+
+    pieces[index] = 0;
+    squares[index] = 0;
+
+    return nnue::evaluate_nnue(side,pieces,squares);
 }
 
 int search::negamax(int alpha, int beta, int depth, int side, int ply){
@@ -271,7 +310,7 @@ int search::negamax(int alpha, int beta, int depth, int side, int ply){
     // reverse futility pruning: if even a generous static-eval margin can't
     // reach beta, the node is hopeless; return the static eval
     if(depth <= 2 && !inCheck && ply > 0){
-        int staticEval = search::evaluate(side);
+        int staticEval = evaluate(side);
         if(staticEval - 150 * depth >= beta) return staticEval;
     }
 
@@ -364,7 +403,7 @@ int search::quiescence(int alpha, int beta, int side, int ply){
     int kingSq = __builtin_ctzll(bitboards[(side == white) ? Wk : Bk]);
     bool inCheck = helper::isSquareAttacked(kingSq, side ^ 1);
 
-    int standPat = search::evaluate(side);
+    int standPat = evaluate(side);
     if(!inCheck){
         if(standPat >= beta) return beta;
         if(standPat > alpha) alpha = standPat;
